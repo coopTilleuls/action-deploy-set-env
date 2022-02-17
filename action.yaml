@@ -42,7 +42,7 @@ outputs:
 
 
 runs:
-  using: "ubuntu-latest"
+  using: "composite"
   steps:
     - shell: bash
       id: main
