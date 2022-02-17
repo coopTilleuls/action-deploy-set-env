@@ -1,3 +1,5 @@
+name: "coopTilleuls/action-deploy-set-env"
+description: "provides all variables for other steps"
 inputs:
   SITE_NAME:
     description: "short site name for namspace/db suffix"
