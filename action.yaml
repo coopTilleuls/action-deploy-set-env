@@ -1,0 +1,142 @@
+inputs:
+  SITE_NAME:
+    description: "short site name for namspace/db suffix"
+    required: true
+  SECRETS_JSON:
+    required: true
+
+outputs:
+  CLUSTER:
+    description: "Kubernetes cluster"
+    value: ${{ steps.main.outputs.CLUSTER }}
+  IMAGE_TAG:
+    description: "Docker image tag"
+    value: ${{ steps.main.outputs.IMAGE_TAG }}
+  NAMESPACE:
+    description: "Kubernetes namespace"
+    value: ${{ steps.main.outputs.NAMESPACE }}
+  PREFIX_NAME:
+    description: "release/db prefix"
+    value: ${{ steps.main.outputs.PREFIX_NAME }}
+  HELM_VALUES_ARG:
+    description: "helm values argument to pass to helm command"
+    value: ${{ steps.main.outputs.HELM_VALUES_ARG }}
+  DB_USER:
+    description: "database username"
+    value: ${{ steps.main.outputs.DB_USER }}
+  DB_NAME:
+    description: "database name"
+    value: ${{ steps.main.outputs.DB_NAME }}
+  SITE_BACK_DOMAIN:
+    description: "dns domain for wordpress"
+    value: ${{ steps.main.outputs.SITE_BACK_DOMAIN }}
+  SITE_FRONT_DOMAIN:
+    description: "dns domain for node"
+    value: ${{ steps.main.outputs.SITE_FRONT_DOMAIN }}
+  SITE_FRONT_VERCEL_DOMAIN:
+    description: "dns domain for node on Vercel"
+    value: ${{ steps.main.outputs.SITE_FRONT_VERCEL_DOMAIN }}
+  VERCEL_ARGS:
+    description: "arguments for vercel deployment"
+    value: ${{ steps.main.outputs.VERCEL_ARGS }}
+
+
+runs:
+  using: "ubuntu-latest"
+  steps:
+    - shell: bash
+      id: main
+      run: |
+        set -ex
+
+        function get_input() {
+          local key=$1
+          jq -r ".$key // empty" <<EOF
+          ${{ inputs.SECRETS_JSON }}
+        EOF
+        }
+
+        # set prefix name
+        if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+          PREFIX_NAME=pr-$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          VERCEL_PREFIX_NAME="$GITHUB_HEAD_REF"
+        else
+          PREFIX_NAME=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/_/-/g')
+          VERCEL_PREFIX_NAME="$PREFIX_NAME"
+        fi
+        echo "::set-output name=PREFIX_NAME::$PREFIX_NAME"
+
+        # set image tag
+        IMAGE_TAG=$(echo sha-${GITHUB_SHA::7})
+        echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
+
+        # get cluster credential
+        if [ "$PREFIX_NAME" == "main" ]; then
+          CLUSTER=prod
+        else
+          CLUSTER=nonprod
+        fi
+        echo "::set-output name=CLUSTER::$CLUSTER"
+        CLUSTER_UC=$(echo $CLUSTER | tr a-z A-Z)
+
+        # short site name
+        SITE_NAME=${{ inputs.SITE_NAME }}
+
+        # set namespace
+        NAMESPACE=$(echo "$CLUSTER-$SITE_NAME" | sed -e 's|/$||' -e 's|/|-|g' | tr A-Z a-z)
+        echo "::set-output name=NAMESPACE::$NAMESPACE"
+
+        # url suffix, via wildcard to ingress controller ip
+        DOMAIN_NAME="$(get_input DOMAIN_NAME_${CLUSTER_UC})"
+        if [ -z "$DOMAIN_NAME" ]; then
+          DOMAIN_SUFFIX="$(get_input DOMAIN_SUFFIX_${CLUSTER_UC})"
+          if [ -z "$DOMAIN_SUFFIX" ]; then
+            echo "At least DOMAIN_SUFFIX_${CLUSTER_UC} or DOMAIN_NAME_${CLUSTER_UC} is required as github action secrets"
+            exit 1
+          fi
+          DOMAIN_NAME="$PREFIX_NAME.$DOMAIN_SUFFIX"
+        fi
+        SITE_FRONT_DOMAIN="$DOMAIN_NAME"
+        SITE_BACK_DOMAIN="api.$DOMAIN_NAME"
+        echo "::set-output name=SITE_FRONT_DOMAIN::$SITE_FRONT_DOMAIN"
+        echo "::set-output name=SITE_BACK_DOMAIN::$SITE_BACK_DOMAIN"
+
+        # Vercel url
+        GITHUB_SHORT_REPOSITORY=$(echo "$GITHUB_REPOSITORY" | cut -d/ -f 2)
+        VERCEL_PREFIX_NAME=$(echo $VERCEL_PREFIX_NAME | tr -cd "[a-z0-9-]")
+        SITE_FRONT_VERCEL_DOMAIN="${GITHUB_SHORT_REPOSITORY}-git-${VERCEL_PREFIX_NAME}-tilleuls.vercel.app"
+        echo "::set-output name=SITE_FRONT_VERCEL_DOMAIN::$SITE_FRONT_VERCEL_DOMAIN"
+
+        # Vercel deploy hook
+        PREFIX_NAME_VAR_SUFFIX=$(echo ${PREFIX_NAME^^} | tr -cd "[A-Z0-9]")
+        VERCEL_DEPLOY_URL=$(get_input VERCEL_DEPLOY_URL_${PREFIX_NAME_VAR_SUFFIX})
+
+        # set db_user and db_name
+        DB_USER=$(echo "$PREFIX_NAME-$SITE_NAME" | sed -e 's|/$||' -e 's|[/-]|_|g' | tr A-Z a-z)
+        echo "::set-output name=DB_USER::$DB_USER"
+        DB_NAME=$(echo "$PREFIX_NAME-$SITE_NAME" | sed -e 's|/$||' -e 's|[/-]|_|g' | tr A-Z a-z)
+        echo "::set-output name=DB_NAME::$DB_NAME"
+
+        # set helm values file
+        if [ -f helm/chart/values-$PREFIX_NAME.yaml ]; then
+          HELM_VALUES_ARG="-f helm/chart/values-$PREFIX_NAME.yaml"
+        else
+          if [ -f helm/chart/values-pullrequest.yaml ]; then
+            HELM_VALUES_ARG="-f helm/chart/values-pullrequest.yaml"
+          fi
+        fi
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set mysql.auth.database=$DB_NAME --set mysql.auth.username=$DB_USER"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_front_domain=$SITE_FRONT_DOMAIN"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_back_domain=$SITE_BACK_DOMAIN"
+        echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
+
+        # set Vercel args
+        if [ "$PREFIX_NAME" == "main" ]; then
+          VERCEL_ARGS="--prod"
+        fi
+        VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
+        VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
+        VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
+        VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
+        echo "::set-output name=VERCEL_ARGS::$VERCEL_ARGS"
+
