@@ -39,6 +39,15 @@ outputs:
   VERCEL_ARGS:
     description: "arguments for vercel deployment"
     value: ${{ steps.main.outputs.VERCEL_ARGS }}
+  HELM_CHART_REPO:
+    description: "helm chart repo url"
+    value: ${{ steps.main.outputs.HELM_CHART_REPO }}
+  HELM_CHART_NAME:
+    description: "helm chart name"
+    value: ${{ steps.main.outputs.HELM_CHART_NAME }}
+  HELM_CHART_VERSION:
+    description: "helm chart version"
+    value: ${{ steps.main.outputs.HELM_CHART_VERSION }}
 
 
 runs:
@@ -128,6 +137,16 @@ runs:
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set mysql.auth.database=$DB_NAME --set mysql.auth.username=$DB_USER"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_front_domain=$SITE_FRONT_DOMAIN"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_back_domain=$SITE_BACK_DOMAIN"
+
+        # Set image repo/tag
+        # image registry
+        IMAGE_REPOSITORY=$(get_input IMAGE_REPOSITORY)
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set wordpress.image.repository=${IMAGE_REPOSITORY}/wordpress"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set frontend.image.repository=${IMAGE_REPOSITORY}/frontend"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set wordpress.image.tag=${IMAGE_TAG}"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set frontend.image.tag=${IMAGE_TAG}"
+
+        # End of helm values
         echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
 
         # set Vercel args
@@ -140,3 +159,25 @@ runs:
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         echo "::set-output name=VERCEL_ARGS::$VERCEL_ARGS"
 
+        # HELM chart information
+        if [ ! -f helm/chart/HELM_ENV ]; then
+          echo "helm/chart/HELM_ENV is missing, couldn’t find chart informations" 1>&2
+          exit 1
+        else
+          source helm/chart/HELM_ENV
+          if [ -z "$HELM_CHART_REPO" ]; then
+            echo "Missing HELM_CHART_REPO in helm/chart/HELM_ENV file" 1>&2
+            exit 1
+          fi
+          if [ -z "$HELM_CHART_NAME" ]; then
+            echo "Missing HELM_CHART_NAME in helm/chart/HELM_ENV file" 1>&2
+            exit 1
+          fi
+          if [ -z "$HELM_CHART_VERSION" ]; then
+            echo "Missing HELM_CHART_VERSION in helm/chart/HELM_ENV file" 1>&2
+            exit 1
+          fi
+        fi
+        echo "::set-output name=HELM_CHART_REPO::$HELM_CHART_REPO"
+        echo "::set-output name=HELM_CHART_NAME::$HELM_CHART_NAME"
+        echo "::set-output name=HELM_CHART_VERSION::$HELM_CHART_VERSION"
