@@ -152,13 +152,20 @@ runs:
         echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
 
         # set Vercel args
+        VERCEL_ARGS=""
         if [ "$PREFIX_NAME" == "main" ]; then
-          VERCEL_ARGS="--prod"
+          VERCEL_ARGS="$VERCEL_ARGS --prod"
         fi
         VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
+        # Basic auth on front
+        BASIC_AUTH_USERNAME="$(get_input BASIC_AUTH_USERNAME_${CLUSTER_UC})"
+        BASIC_AUTH_PASSWORD="$(get_input BASIC_AUTH_PASSWORD_${CLUSTER_UC})"
+        if [ "$BASIC_AUTH_USERNAME" && "$BASIC_AUTH_PASSWORD" ]; then
+          VERCEL_ARGS="$VERCEL_ARGS --env BASIC_AUTH_USERNAME=$BASIC_AUTH_USERNAME --env BASIC_AUTH_PASSWORD=$BASIC_AUTH_PASSWORD"
+        fi
         echo "::set-output name=VERCEL_ARGS::$VERCEL_ARGS"
 
         # HELM chart information
