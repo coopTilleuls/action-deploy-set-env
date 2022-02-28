@@ -163,7 +163,7 @@ runs:
         # Basic auth on front
         BASIC_AUTH_USERNAME="$(get_input BASIC_AUTH_USERNAME_${CLUSTER_UC})"
         BASIC_AUTH_PASSWORD="$(get_input BASIC_AUTH_PASSWORD_${CLUSTER_UC})"
-        if [ "$BASIC_AUTH_USERNAME" && "$BASIC_AUTH_PASSWORD" ]; then
+        if [ "$BASIC_AUTH_USERNAME" -a "$BASIC_AUTH_PASSWORD" ]; then
           VERCEL_ARGS="$VERCEL_ARGS --env BASIC_AUTH_USERNAME=$BASIC_AUTH_USERNAME --env BASIC_AUTH_PASSWORD=$BASIC_AUTH_PASSWORD"
         fi
         echo "::set-output name=VERCEL_ARGS::$VERCEL_ARGS"
