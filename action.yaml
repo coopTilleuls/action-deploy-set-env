@@ -70,9 +70,11 @@ runs:
         # set prefix name
         if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
           PREFIX_NAME=pr-$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          PREFIX_NAME_UC=PR_$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           VERCEL_PREFIX_NAME="$GITHUB_HEAD_REF"
         else
           PREFIX_NAME=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/_/-/g')
+          PREFIX_NAME_UC=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/-/_/g')
           VERCEL_PREFIX_NAME="$PREFIX_NAME"
         fi
         echo "::set-output name=PREFIX_NAME::$PREFIX_NAME"
@@ -98,11 +100,11 @@ runs:
         echo "::set-output name=NAMESPACE::$NAMESPACE"
 
         # url suffix, via wildcard to ingress controller ip
-        DOMAIN_NAME="$(get_input DOMAIN_NAME_${CLUSTER_UC})"
+        DOMAIN_NAME="$(get_input DOMAIN_NAME_${PREFIX_NAME_UC})"
         if [ -z "$DOMAIN_NAME" ]; then
           DOMAIN_SUFFIX="$(get_input DOMAIN_SUFFIX_${CLUSTER_UC})"
           if [ -z "$DOMAIN_SUFFIX" ]; then
-            echo "At least DOMAIN_SUFFIX_${CLUSTER_UC} or DOMAIN_NAME_${CLUSTER_UC} is required as github action secrets"
+            echo "At least DOMAIN_SUFFIX_${CLUSTER_UC} (cluster) or DOMAIN_NAME_${PREFIX_NAME_UC} (branch) is required as github action secrets"
             exit 1
           fi
           DOMAIN_NAME="$PREFIX_NAME.$DOMAIN_SUFFIX"
