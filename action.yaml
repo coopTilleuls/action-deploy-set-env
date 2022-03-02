@@ -70,11 +70,11 @@ runs:
         # set prefix name
         if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
           PREFIX_NAME=pr-$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
-          PREFIX_NAME_UC=PR_$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          PREFIX_NAME_UC=PR_$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH" | tr a-z A-Z)
           VERCEL_PREFIX_NAME="$GITHUB_HEAD_REF"
         else
           PREFIX_NAME=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/_/-/g')
-          PREFIX_NAME_UC=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/-/_/g')
+          PREFIX_NAME_UC=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/-/_/g' | tr a-z A-Z)
           VERCEL_PREFIX_NAME="$PREFIX_NAME"
         fi
         echo "::set-output name=PREFIX_NAME::$PREFIX_NAME"
