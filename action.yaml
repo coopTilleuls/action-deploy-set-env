@@ -109,8 +109,16 @@ runs:
           fi
           DOMAIN_NAME="$PREFIX_NAME.$DOMAIN_SUFFIX"
         fi
+        USE_WILDCARD_CERTIFICATE="$(get_input USE_WILDCARD_CERTIFICATE_${PREFIX_NAME_UC})"
+        # Front domain
         SITE_FRONT_DOMAIN="$DOMAIN_NAME"
-        SITE_BACK_DOMAIN="api.$DOMAIN_NAME"
+        # Back domain.
+        if [ -n "$USE_WILDCARD_CERTIFICATE" ]; then
+          # api-develop.domain.tld to use *.domain.tld certificate
+          SITE_BACK_DOMAIN="api-$DOMAIN_NAME"
+        else
+          SITE_BACK_DOMAIN="api.$DOMAIN_NAME"
+        fi
         echo "::set-output name=SITE_FRONT_DOMAIN::$SITE_FRONT_DOMAIN"
         echo "::set-output name=SITE_BACK_DOMAIN::$SITE_BACK_DOMAIN"
 
