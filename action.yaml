@@ -125,7 +125,12 @@ runs:
         # Vercel url
         GITHUB_SHORT_REPOSITORY=$(echo "$GITHUB_REPOSITORY" | cut -d/ -f 2)
         VERCEL_PREFIX_NAME=$(echo $VERCEL_PREFIX_NAME | tr -cd "[a-z0-9-]")
-        SITE_FRONT_VERCEL_DOMAIN="${GITHUB_SHORT_REPOSITORY}-git-${VERCEL_PREFIX_NAME}-tilleuls.vercel.app"
+        DOMAIN_NAME="$(get_input DOMAIN_NAME_${PREFIX_NAME_UC})"
+        if [ -z "$DOMAIN_NAME" ]; then
+          SITE_FRONT_VERCEL_DOMAIN="${GITHUB_SHORT_REPOSITORY}-git-${VERCEL_PREFIX_NAME}-tilleuls.vercel.app"
+        else
+          SITE_FRONT_VERCEL_DOMAIN="$DOMAIN_NAME"
+        fi
         echo "::set-output name=SITE_FRONT_VERCEL_DOMAIN::$SITE_FRONT_VERCEL_DOMAIN"
 
         # Vercel deploy hook
