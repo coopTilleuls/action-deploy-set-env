@@ -144,11 +144,14 @@ runs:
         echo "::set-output name=DB_NAME::$DB_NAME"
 
         # set helm values file
+        if [ -f helm/chart/values.yaml ]; then
+          HELM_VALUES_ARG="$HELM_VALUES_ARG -f helm/chart/values.yaml"
+        fi
         if [ -f helm/chart/values-$PREFIX_NAME.yaml ]; then
-          HELM_VALUES_ARG="-f helm/chart/values-$PREFIX_NAME.yaml"
+          HELM_VALUES_ARG="$HELM_VALUES_ARG -f helm/chart/values-$PREFIX_NAME.yaml"
         else
           if [ -f helm/chart/values-pullrequest.yaml ]; then
-            HELM_VALUES_ARG="-f helm/chart/values-pullrequest.yaml"
+            HELM_VALUES_ARG="$HELM_VALUES_ARG -f helm/chart/values-pullrequest.yaml"
           fi
         fi
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set mysql.auth.database=$DB_NAME --set mysql.auth.username=$DB_USER"
