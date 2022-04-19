@@ -41,6 +41,9 @@ outputs:
   VERCEL_ARGS:
     description: "arguments for vercel deployment"
     value: ${{ steps.main.outputs.VERCEL_ARGS }}
+  DUMP_SUBSTITUTIONS:
+    description: "json array of search/replacement to apply before inserting dump (or inverted during dump)"
+    value: ${{ steps.main.outputs.DUMP_SUBSTITUTIONS }}
 
 runs:
   using: "composite"
@@ -148,6 +151,21 @@ runs:
 
         # End of helm values
         echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
+
+        # Set dump substitutions, as a single line output
+        DUMP_SUBSTITUTIONS=$(echo "
+        [
+          {
+            \"search\": \"http://localhost:8080\",
+            \"replace\": \"https://$SITE_BACK_DOMAIN\"
+          },
+          {
+            \"search\": \"http://localhost:3000\",
+            \"replace\": \"https://$SITE_FRONT_VERCEL_DOMAIN\"
+          }
+        ]
+        " | jq -c)
+        echo "::set-output name=DUMP_SUBSTITUTIONS::$DUMP_SUBSTITUTIONS"
 
         # set Vercel args
         VERCEL_ARGS=""
