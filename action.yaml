@@ -29,15 +29,9 @@ outputs:
   DB_NAME:
     description: "database name"
     value: ${{ steps.main.outputs.DB_NAME }}
-  SITE_BACK_DOMAIN:
-    description: "dns domain for wordpress"
-    value: ${{ steps.main.outputs.SITE_BACK_DOMAIN }}
-  SITE_FRONT_DOMAIN:
-    description: "dns domain for node"
-    value: ${{ steps.main.outputs.SITE_FRONT_DOMAIN }}
-  SITE_FRONT_VERCEL_DOMAIN:
-    description: "dns domain for node on Vercel"
-    value: ${{ steps.main.outputs.SITE_FRONT_VERCEL_DOMAIN }}
+  PULL_REQUEST_MESSAGE:
+    description: "message to post in pull request after deployment"
+    value: ${{ steps.main.outputs.PULL_REQUEST_MESSAGE }}
   VERCEL_ARGS:
     description: "arguments for vercel deployment"
     value: ${{ steps.main.outputs.VERCEL_ARGS }}
@@ -184,4 +178,6 @@ runs:
         fi
         echo "::set-output name=VERCEL_ARGS::$VERCEL_ARGS"
 
-
+        # Pull request message
+        PULL_REQUEST_MESSAGE="To access site:\nSITE_BACK_DOMAIN: https://${SITE_BACK_DOMAIN}\nSITE_FRONT_VERCEL_DOMAIN: https://${SITE_FRONT_VERCEL_DOMAIN}\nADMIN: https://${SITE_BACK_DOMAIN}/admin"
+        echo "::set-output name=PULL_REQUEST_MESSAGE::$PULL_REQUEST_MESSAGE"
