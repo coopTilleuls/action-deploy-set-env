@@ -132,7 +132,7 @@ runs:
 
         # set helm values
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set mysql.auth.database=$DB_NAME --set mysql.auth.username=$DB_USER"
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_front_domain=$SITE_FRONT_DOMAIN"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_front_domain=$SITE_FRONT_VERCEL_DOMAIN"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_back_domain=$SITE_BACK_DOMAIN"
 
         # Set image repo/tag
@@ -140,8 +140,10 @@ runs:
         IMAGE_REPOSITORY=$(get_input IMAGE_REPOSITORY)
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set wordpress.image.repository=${IMAGE_REPOSITORY}/wordpress"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set frontend.image.repository=${IMAGE_REPOSITORY}/frontend"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set varnish.image.repository=${IMAGE_REPOSITORY}/varnish"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set wordpress.image.tag=${IMAGE_TAG}"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set frontend.image.tag=${IMAGE_TAG}"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set varnish.image.tag=${IMAGE_TAG}"
 
         # End of helm values
         echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
