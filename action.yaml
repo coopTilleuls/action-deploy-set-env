@@ -71,7 +71,7 @@ runs:
         echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
 
         # get cluster credential
-        if [ "$PREFIX_NAME" == "main" ]; then
+        if [ "$PREFIX_NAME" == "main" -o "$PREFIX_NAME" == "prod" ]; then
           CLUSTER=prod
         else
           CLUSTER=nonprod
