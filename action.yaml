@@ -86,98 +86,26 @@ runs:
         NAMESPACE=$(echo "$CLUSTER-$SITE_NAME" | sed -e 's|/$||' -e 's|/|-|g' | tr A-Z a-z)
         echo "::set-output name=NAMESPACE::$NAMESPACE"
 
-        # url suffix, via wildcard to ingress controller ip
-        DOMAIN_NAME="$(get_input DOMAIN_NAME_${PREFIX_NAME_UC})"
-        if [ -z "$DOMAIN_NAME" ]; then
-          DOMAIN_SUFFIX="$(get_input DOMAIN_SUFFIX_${CLUSTER_UC})"
-          if [ -z "$DOMAIN_SUFFIX" ]; then
-            echo "At least DOMAIN_SUFFIX_${CLUSTER_UC} (cluster) or DOMAIN_NAME_${PREFIX_NAME_UC} (branch) is required as github action secrets"
-            exit 1
-          fi
-          DOMAIN_NAME="$PREFIX_NAME.$DOMAIN_SUFFIX"
-        fi
-        USE_WILDCARD_CERTIFICATE="$(get_input USE_WILDCARD_CERTIFICATE_${PREFIX_NAME_UC})"
-        # Front domain
-        SITE_FRONT_DOMAIN="$DOMAIN_NAME"
-        # Back domain.
-        if [ -n "$USE_WILDCARD_CERTIFICATE" ]; then
-          # api-develop.domain.tld to use *.domain.tld certificate
-          SITE_BACK_DOMAIN="api-$DOMAIN_NAME"
-        else
-          SITE_BACK_DOMAIN="api.$DOMAIN_NAME"
-        fi
-        echo "::set-output name=SITE_FRONT_DOMAIN::$SITE_FRONT_DOMAIN"
-        echo "::set-output name=SITE_BACK_DOMAIN::$SITE_BACK_DOMAIN"
-
-        # Vercel url
-        GITHUB_SHORT_REPOSITORY=$(echo "$GITHUB_REPOSITORY" | cut -d/ -f 2)
-        VERCEL_PREFIX_NAME=$(echo $VERCEL_PREFIX_NAME | tr -cd "[a-z0-9-]")
-        DOMAIN_NAME="$(get_input DOMAIN_NAME_${PREFIX_NAME_UC})"
-        if [ -z "$DOMAIN_NAME" ]; then
-          SITE_FRONT_VERCEL_DOMAIN="${GITHUB_SHORT_REPOSITORY}-git-${VERCEL_PREFIX_NAME}-tilleuls.vercel.app"
-        else
-          SITE_FRONT_VERCEL_DOMAIN="$DOMAIN_NAME"
-        fi
-        echo "::set-output name=SITE_FRONT_VERCEL_DOMAIN::$SITE_FRONT_VERCEL_DOMAIN"
-
-        # Vercel deploy hook
-        PREFIX_NAME_VAR_SUFFIX=$(echo ${PREFIX_NAME^^} | tr -cd "[A-Z0-9]")
-        VERCEL_DEPLOY_URL=$(get_input VERCEL_DEPLOY_URL_${PREFIX_NAME_VAR_SUFFIX})
-
         # set db_user and db_name
         DB_USER=$(echo "$PREFIX_NAME-$SITE_NAME" | sed -e 's|/$||' -e 's|[/-]|_|g' | tr A-Z a-z)
         echo "::set-output name=DB_USER::$DB_USER"
         DB_NAME=$(echo "$PREFIX_NAME-$SITE_NAME" | sed -e 's|/$||' -e 's|[/-]|_|g' | tr A-Z a-z)
         echo "::set-output name=DB_NAME::$DB_NAME"
 
-        # set helm values
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set mysql.auth.database=$DB_NAME --set mysql.auth.username=$DB_USER"
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_front_domain=$SITE_FRONT_DOMAIN"
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_back_domain=$SITE_BACK_DOMAIN"
-
         # Set image repo/tag
         # image registry
         IMAGE_REPOSITORY=$(get_input IMAGE_REPOSITORY)
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set wordpress.image.repository=${IMAGE_REPOSITORY}/wordpress"
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set frontend.image.repository=${IMAGE_REPOSITORY}/frontend"
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set wordpress.image.tag=${IMAGE_TAG}"
-        HELM_VALUES_ARG="$HELM_VALUES_ARG --set frontend.image.tag=${IMAGE_TAG}"
+
+        sed -i -e "s#IMAGE_TAG#$IMAGE_TAG#g"               helm/chart/values*.yaml
+        sed -i -e "s#IMAGE_REPOSITORY#$IMAGE_REPOSITORY#g" helm/chart/values*.yaml
+        sed -i -e "s#PREFIX_NAME#$PREFIX_NAME#g"           helm/chart/values*.yaml
+        sed -i -e "s#DB_USER#$DB_USER#g"                   helm/chart/values*.yaml
+        sed -i -e "s#DB_NAME#$DB_NAME#g"                   helm/chart/values*.yaml
+        cat helm/chart/values*.yaml
 
         # End of helm values
         echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
 
-        # Set dump substitutions, as a single line output
-        DUMP_SUBSTITUTIONS=$(echo "
-        [
-          {
-            \"search\": \"http://localhost:8080\",
-            \"replace\": \"https://$SITE_BACK_DOMAIN\"
-          },
-          {
-            \"search\": \"http://localhost:3000\",
-            \"replace\": \"https://$SITE_FRONT_VERCEL_DOMAIN\"
-          }
-        ]
-        " | jq -c)
-        echo "::set-output name=DUMP_SUBSTITUTIONS::$DUMP_SUBSTITUTIONS"
-
-        # set Vercel args
-        VERCEL_ARGS=""
-        if [ "$PREFIX_NAME" == "main" ]; then
-          VERCEL_ARGS="$VERCEL_ARGS --prod"
-        fi
-        VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
-        VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
-        VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
-        VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
-        # Basic auth on front
-        BASIC_AUTH_USERNAME="$(get_input BASIC_AUTH_USERNAME_${CLUSTER_UC})"
-        BASIC_AUTH_PASSWORD="$(get_input BASIC_AUTH_PASSWORD_${CLUSTER_UC})"
-        if [ "$BASIC_AUTH_USERNAME" -a "$BASIC_AUTH_PASSWORD" ]; then
-          VERCEL_ARGS="$VERCEL_ARGS --env BASIC_AUTH_USERNAME=$BASIC_AUTH_USERNAME --env BASIC_AUTH_PASSWORD=$BASIC_AUTH_PASSWORD"
-        fi
-        echo "::set-output name=VERCEL_ARGS::$VERCEL_ARGS"
-
         # Pull request message
-        PULL_REQUEST_MESSAGE="To access site:\nSITE_BACK_DOMAIN: https://${SITE_BACK_DOMAIN}\nSITE_FRONT_VERCEL_DOMAIN: https://${SITE_FRONT_VERCEL_DOMAIN}\nADMIN: https://${SITE_BACK_DOMAIN}/admin"
+        PULL_REQUEST_MESSAGE="To access site: FIXME"
         echo "::set-output name=PULL_REQUEST_MESSAGE::$PULL_REQUEST_MESSAGE"
