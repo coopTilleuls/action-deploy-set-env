@@ -29,6 +29,9 @@ outputs:
   DB_NAME:
     description: "database name"
     value: ${{ steps.main.outputs.DB_NAME }}
+  MAILER_DSN:
+    description: "mailer dsn URI"
+    value: ${{ steps.main.outputs.MAILER_DSN }}
   PULL_REQUEST_MESSAGE:
     description: "message to post in pull request after deployment"
     value: ${{ steps.main.outputs.PULL_REQUEST_MESSAGE }}
@@ -70,7 +73,7 @@ runs:
         IMAGE_TAG=$(echo sha-${GITHUB_SHA::7})
         echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
 
-        # get cluster credential
+        # get cluster credentials
         if [ "$PREFIX_NAME" == "main" -o "$PREFIX_NAME" == "prod" -o "$PREFIX_NAME" == "master" ]; then
           CLUSTER=prod
         else
@@ -101,6 +104,7 @@ runs:
         sed -i -e "s#PREFIX_NAME#$PREFIX_NAME#g"           helm/chart/values*.yaml
         sed -i -e "s#DB_USER#$DB_USER#g"                   helm/chart/values*.yaml
         sed -i -e "s#DB_NAME#$DB_NAME#g"                   helm/chart/values*.yaml
+        sed -i -e "s#MAILER_DSN#$MAILER_DSN#g"             helm/chart/values*.yaml
         cat helm/chart/values*.yaml
 
         # End of helm values
