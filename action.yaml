@@ -29,9 +29,6 @@ outputs:
   DB_NAME:
     description: "database name"
     value: ${{ steps.main.outputs.DB_NAME }}
-  MAILER_DSN:
-    description: "mailer dsn URI"
-    value: ${{ steps.main.outputs.MAILER_DSN }}
   PULL_REQUEST_MESSAGE:
     description: "message to post in pull request after deployment"
     value: ${{ steps.main.outputs.PULL_REQUEST_MESSAGE }}
@@ -98,6 +95,7 @@ runs:
         # Set image repo/tag
         # image registry
         IMAGE_REPOSITORY=$(get_input IMAGE_REPOSITORY)
+        MAILER_DSN=$(get_input MAILER_DSN)
 
         sed -i -e "s#IMAGE_TAG#$IMAGE_TAG#g"               helm/chart/values*.yaml
         sed -i -e "s#IMAGE_REPOSITORY#$IMAGE_REPOSITORY#g" helm/chart/values*.yaml
