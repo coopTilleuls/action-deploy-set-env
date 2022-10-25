@@ -96,6 +96,8 @@ runs:
         # image registry
         IMAGE_REPOSITORY=$(get_input IMAGE_REPOSITORY)
         MAILER_DSN=$(get_input MAILER_DSN)
+        MAILGUN_API_KEY=$(get_input MAILGUN_API_KEY)
+        MAILGUN_DOMAIN=$(get_input MAILGUN_DOMAIN)
 
         sed -i -e "s#IMAGE_TAG#$IMAGE_TAG#g"               helm/chart/values*.yaml
         sed -i -e "s#IMAGE_REPOSITORY#$IMAGE_REPOSITORY#g" helm/chart/values*.yaml
@@ -103,6 +105,8 @@ runs:
         sed -i -e "s#DB_USER#$DB_USER#g"                   helm/chart/values*.yaml
         sed -i -e "s#DB_NAME#$DB_NAME#g"                   helm/chart/values*.yaml
         sed -i -e "s#MAILER_DSN#$MAILER_DSN#g"             helm/chart/values*.yaml
+        sed -i -e "s#MAILGUN_API_KEY#$MAILGUN_API_KEY#g"   helm/chart/values*.yaml
+        sed -i -e "s#MAILGUN_DOMAIN#$MAILGUN_DOMAIN#g"     helm/chart/values*.yaml
         cat helm/chart/values*.yaml
 
         # End of helm values
