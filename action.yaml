@@ -136,6 +136,9 @@ runs:
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set mysql.auth.database=$DB_NAME --set mysql.auth.username=$DB_USER"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_front_domain=$SITE_FRONT_VERCEL_DOMAIN"
         HELM_VALUES_ARG="$HELM_VALUES_ARG --set site_back_domain=$SITE_BACK_DOMAIN"
+        HELM_VALUES_ARG="$HELM_VALUES_ARG --set next_validation_token=$NEXT_VALIDATION_TOKEN"
+
+
 
         # Set image repo/tag
         # image registry
@@ -175,6 +178,8 @@ runs:
         VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_VALIDATION_TOKEN = $NEXT_VALIDATION_TOKEN"
+
+        
         # Basic auth on front
         BASIC_AUTH_USERNAME="$(get_input BASIC_AUTH_USERNAME_${CLUSTER_UC})"
         BASIC_AUTH_PASSWORD="$(get_input BASIC_AUTH_PASSWORD_${CLUSTER_UC})"
