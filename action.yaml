@@ -59,10 +59,12 @@ runs:
           PREFIX_NAME=pr-$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           PREFIX_NAME_UC=PR_$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH" | tr a-z A-Z)
           VERCEL_PREFIX_NAME="$GITHUB_HEAD_REF"
+          NEXT_VALIDATION_TOKEN= {{ .secrets.NEXT_VALIDATION_TOKEN_PR }}
         else
           PREFIX_NAME=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/_/-/g')
           PREFIX_NAME_UC=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/-/_/g' | tr a-z A-Z)
           VERCEL_PREFIX_NAME="$PREFIX_NAME"
+          NEXT_VALIDATION_TOKEN= {{ .secrets.NEXT_VALIDATION_TOKEN_$PREFIX_NAME_UC }}
         fi
         echo "::set-output name=PREFIX_NAME::$PREFIX_NAME"
 
@@ -172,6 +174,7 @@ runs:
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
         VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_PUBLIC_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
+        VERCEL_ARGS="$VERCEL_ARGS --env       NEXT_VALIDATION_TOKEN = $NEXT_VALIDATION_TOKEN"
         # Basic auth on front
         BASIC_AUTH_USERNAME="$(get_input BASIC_AUTH_USERNAME_${CLUSTER_UC})"
         BASIC_AUTH_PASSWORD="$(get_input BASIC_AUTH_PASSWORD_${CLUSTER_UC})"
