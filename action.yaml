@@ -170,7 +170,7 @@ runs:
 
         # set Vercel args
         VERCEL_ARGS=""
-        if [ "$PREFIX_NAME" == "main" ]; then
+        if [ "$PREFIX_NAME" == "main" -o "$PREFIX_NAME" == "prod" ]; then
           VERCEL_ARGS="$VERCEL_ARGS --prod"
         fi
         VERCEL_ARGS="$VERCEL_ARGS --build-env NEXT_PRIVATE_WORDPRESS_URL=https://$SITE_BACK_DOMAIN"
