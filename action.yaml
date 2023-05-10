@@ -5,6 +5,7 @@ inputs:
     description: "short site name for namspace/db suffix"
     required: true
   SECRETS_JSON:
+    description: "secrets as a json file"
     required: true
 
 outputs:
@@ -64,11 +65,11 @@ runs:
           PREFIX_NAME_UC=$(echo $GITHUB_REF | cut -d / -f 3 | sed -e 's/-/_/g' | tr a-z A-Z)
           VERCEL_PREFIX_NAME="$PREFIX_NAME"
         fi
-        echo "::set-output name=PREFIX_NAME::$PREFIX_NAME"
+        echo "PREFIX_NAME=$PREFIX_NAME" >> $GITHUB_OUTPUT
 
         # set image tag
         IMAGE_TAG=$(echo sha-${GITHUB_SHA::7})
-        echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
         # get cluster credentials
         if [ "$PREFIX_NAME" == "main" -o "$PREFIX_NAME" == "prod" -o "$PREFIX_NAME" == "master" ]; then
@@ -76,7 +77,8 @@ runs:
         else
           CLUSTER=nonprod
         fi
-        echo "::set-output name=CLUSTER::$CLUSTER"
+        echo "CLUSTER=$CLUSTER" >> $GITHUB_OUTPUT
+
         CLUSTER_UC=$(echo $CLUSTER | tr a-z A-Z)
 
         # short site name
@@ -84,13 +86,14 @@ runs:
 
         # set namespace
         NAMESPACE=$(echo "$CLUSTER-$SITE_NAME" | sed -e 's|/$||' -e 's|/|-|g' | tr A-Z a-z)
-        echo "::set-output name=NAMESPACE::$NAMESPACE"
+        echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
 
         # set db_user and db_name
         DB_USER=$(echo "$PREFIX_NAME-$SITE_NAME" | sed -e 's|/$||' -e 's|[/-]|_|g' | tr A-Z a-z)
-        echo "::set-output name=DB_USER::$DB_USER"
+        echo "DB_USER=$DB_USER" >> $GITHUB_OUTPUT
+
         DB_NAME=$(echo "$PREFIX_NAME-$SITE_NAME" | sed -e 's|/$||' -e 's|[/-]|_|g' | tr A-Z a-z)
-        echo "::set-output name=DB_NAME::$DB_NAME"
+        echo "DB_NAME=$DB_NAME" >> $GITHUB_OUTPUT
 
         # Set image repo/tag
         # image registry
@@ -110,8 +113,8 @@ runs:
         cat helm/chart/values*.yaml
 
         # End of helm values
-        echo "::set-output name=HELM_VALUES_ARG::$HELM_VALUES_ARG"
+        echo "HELM_VALUES_ARG=$HELM_VALUES_ARG" >> $GITHUB_OUTPUT
 
         # Pull request message
         PULL_REQUEST_MESSAGE="To access site: FIXME"
-        echo "::set-output name=PULL_REQUEST_MESSAGE::$PULL_REQUEST_MESSAGE"
+        echo "PULL_REQUEST_MESSAGE=$PULL_REQUEST_MESSAGE" >> $GITHUB_OUTPUT
